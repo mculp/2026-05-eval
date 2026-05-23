@@ -1,0 +1,31 @@
+or_rank,app_name,domain,category,prospect_status,founder_name,founder_role,email,linkedin_url,twitter_handle,primary_channel,bloat_pattern,priority_score,outreach_file
+1,Hermes Agent,hermes-agent.org,dev-productivity,PROSPECT,Jeffrey Quesnelle,Co-founder & CEO,jeff@jeffq.com,https://www.linkedin.com/in/jeffrey-quesnelle-2490a524/,@theemozilla,email,No Batch API for Async Jobs,8,outreach/01-hermes-agent.md
+2,OpenClaw,openclaw.ai,dev-productivity,CONFLICT-OF-INTEREST,Peter Steinberger,Creator (joining OpenAI; foundation transition),,,@steipete,none,Uncached System Prompt,,outreach/02-openclaw.md
+3,Kilo Code,kilocode.ai,dev-productivity,PROSPECT,Scott Breitenother,Co-founder & CEO,,https://www.linkedin.com/in/scottbreitenother,@kilocode,linkedin,No Semantic Cache on Repeat Sub-Prompts,9,outreach/03-kilo-code.md
+4,Descript,descript.com,b2b-productivity,PROSPECT,Laura Burkhauser,CEO,,https://www.linkedin.com/in/burkhauser/,,linkedin,Uncached System Prompt,7,outreach/04-descript.md
+5,Claude Code,claude.com,dev-productivity,NON-PROSPECT,Anthropic,Vendor,,,@AnthropicAI,none,,,outreach/05-claude-code.md
+6,Cline,cline.bot,dev-productivity,PROSPECT,Saoud Rizwan,Founder/CEO,,https://www.linkedin.com/in/saoud-rizwan/,@sdrzn,email,Uncached System Prompt,7,outreach/06-cline.md
+7,Roo Code,roocode.com,dev-productivity,SHUT-DOWN,Matt Rubens,Founder (pivoted to Roomote),,,,none,,0,outreach/07-roo-code.md
+8,Mira,mira.tg,b2b-productivity,PROSPECT,Daria Yakovleva,CEO,,https://www.linkedin.com/in/daria-yakovleva/,,linkedin,Flagship-for-Easy,8,outreach/08-mira.md
+9,LangChain,langchain.com,dev-productivity,PROSPECT,Harrison Chase,Co-Founder & CEO,harrison@langchain.com,https://www.linkedin.com/in/harrison-chase-961287118/,@hwchase17,email,No Batch API for Async Jobs,5,outreach/09-langchain.md
+10,Codex,openai.com,dev-productivity,NON-PROSPECT,OpenAI,Vendor,,,,none,,0,outreach/10-codex.md
+11,Portkey AI,portkey.ai,dev-productivity,CONFLICT-OF-INTEREST,Rohit Agarwal,Co-founder & CEO,,https://www.linkedin.com/in/1rohitagarwal/,,linkedin,Peer/Partnership (no direct bloat pitch),4,outreach/11-portkey-ai.md
+12,Zed Editor,zed.dev,dev-productivity,PROSPECT,Nathan Sobo,Founder & CEO,,https://www.linkedin.com/in/nathan-sobo-92b46720/,@nathansobo,linkedin,Flagship-for-Easy,7,outreach/12-zed-editor.md
+13,Open WebUI,openwebui.com,b2b-productivity,NON-PROSPECT,Timothy Baek,Founder & Lead Maintainer,,https://www.linkedin.com/in/tjbaek/,,none,Full-Context Stuffing,3,outreach/13-open-webui.md
+14,Ito,ito.ai,dev-productivity,PROSPECT,Barron Caster,Co-founder / CEO,,https://www.linkedin.com/in/barroncaster/,,linkedin,Tool-Use Without Result Caching,9,outreach/14-ito.md
+15,extra.email,extra.email,b2b-productivity,PROSPECT,Naveen Gavini,Co-founder,team@extra.email,,,linkedin,Flagship-for-Easy,6,outreach/15-extra-email.md
+16,BuddyPro AI,buddypro.ai,b2b-productivity,PROSPECT,David Říha,Technology & AI Architecture (Co-founder),,,,linkedin,Uncached System Prompt,6,outreach/16-buddypro-ai.md
+17,Codebuff,codebuff.com,dev-productivity,PROSPECT,James Grugett,Founder/CEO,,https://www.linkedin.com/in/james-grugett/,@jahooma,twitter,Tool-Use Without Result Caching,5,outreach/17-codebuff.md
+18,OpenHands,all-hands.dev,dev-productivity,PROSPECT,Robert Brennan,Co-Founder & CEO,,https://www.linkedin.com/in/robert-a-brennan/,@rbren_dev,linkedin,Flagship-for-Easy,8,outreach/18-openhands.md
+19,Qwen Code,qwenlm.github.io,dev-productivity,NON-PROSPECT,Alibaba,Vendor,,,,none,,0,outreach/19-qwen-code.md
+20,Dify.AI,dify.ai,dev-productivity,PROSPECT,Luyu Zhang,Founder & CEO,,https://www.linkedin.com/in/luyu-zhang/,,linkedin,Full-Context Stuffing,7,outreach/20-dify-ai.md
+21,LibreChat,librechat.ai,b2b-productivity,PROSPECT,Danny Avila,Technical Founder,,https://www.linkedin.com/in/danny-avila/,@lgtm_hbu,email,No Eval Gate on Model Swap,6,outreach/21-librechat.md
+22,Crush,charm.land,dev-productivity,PROSPECT,Christian Rocha,Co-Founder & CEO (Charm),vt52@charm.land,,,email,Flagship-for-Easy,7.5,outreach/22-crush.md
+23,GPT Workspace,gpt.space,b2b-productivity,PROSPECT,"unknown (Pulkit Goyal unverified)",unverified,,,@gpt_workspace,twitter,Uncached System Prompt,8,outreach/23-gpt-workspace.md
+24,T3 Chat,t3.chat,b2b-productivity,PROSPECT,Theo Browne,Founder,,,@theo,twitter,No Semantic Cache on Repeat Sub-Prompts,6,outreach/24-t3-chat.md
+25,Novelcrafter,novelcrafter.com,b2b-productivity,PROSPECT,Leonie (last name unverified),Founder & Developer,,,,linkedin,Flagship-for-Easy,7,outreach/25-novelcrafter.md
+26,Gobii,gobii.ai,b2b-productivity,PROSPECT,Andrew I. Christianson,Founder & CTO,,https://www.linkedin.com/in/andrew-i-christianson-3578629/,@ai_christianson,linkedin,Tool-Use Without Result Caching,8.5,outreach/26-gobii.md
+27,Aider,aider.chat,dev-productivity,PROSPECT,Paul Gauthier,Creator & Maintainer,,,,email,Uncached System Prompt,5.5,outreach/27-aider.md
+28,Vellum,vellum.ai,dev-productivity,PROSPECT,Akash Sharma,Founder & CEO,,https://www.linkedin.com/company/vellumai,,linkedin,No Eval Gate on Model Swap,7,outreach/28-vellum.md
+29,Vectoron,vectoron.ai,vertical-productivity,PROSPECT,Mike Myles,Founder,,https://www.linkedin.com/in/mike-myles-298a7913/,,linkedin,No Batch API for Async Jobs,8,outreach/29-vectoron.md
+30,TimeCamp,timecamp.com,b2b-productivity,PROSPECT,Kamil Rudnicki,Founder & CEO,,,,linkedin,No Batch API for Async Jobs,7.5,outreach/30-timecamp.md

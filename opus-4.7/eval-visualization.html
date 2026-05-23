@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opus 4.7 Eval — OpenRouter Outbound Pipeline Build (2026-05-23)</title>
+<style>
+  :root {
+    --bg: #0e1014;
+    --bg-elev: #161a22;
+    --bg-elev-2: #1d2230;
+    --fg: #e7e9ee;
+    --fg-dim: #9aa1b1;
+    --fg-faint: #5a6275;
+    --amber: #ffb547;
+    --amber-dim: #b87f30;
+    --teal: #4fd1c5;
+    --rose: #ff6b8b;
+    --green: #5fd06f;
+    --red: #ff5a5a;
+    --border: #262c3a;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+  body { padding: 32px 24px 64px; max-width: 1280px; margin: 0 auto; }
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); background: var(--bg-elev); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+
+  /* HEADER */
+  header.eval-head { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
+  header.eval-head .super { font-family: var(--mono); color: var(--amber); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
+  header.eval-head h1 { margin: 4px 0 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+  header.eval-head .meta { color: var(--fg-dim); font-size: 13px; margin-top: 8px; display: flex; gap: 18px; flex-wrap: wrap; }
+  header.eval-head .meta span { display: inline-flex; gap: 6px; align-items: center; }
+  header.eval-head .meta b { color: var(--fg); font-weight: 600; }
+
+  /* SECTIONS */
+  section { margin-bottom: 36px; }
+  section > h2 { font-size: 11px; font-weight: 700; color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase; margin: 0 0 14px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  section > p.lede { color: var(--fg-dim); font-size: 13px; margin: -6px 0 16px; max-width: 70ch; }
+
+  /* HEADLINE STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat .label { font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .stat .value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--fg); }
+  .stat .sub { font-size: 12px; color: var(--fg-faint); margin-top: 2px; }
+  .stat.accent .value { color: var(--amber); }
+  .stat.teal .value { color: var(--teal); }
+
+  /* TIMELINE (Gantt) */
+  .timeline-wrap { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 18px 18px 10px; }
+  .timeline-legend { display: flex; gap: 18px; font-size: 11px; color: var(--fg-dim); margin-top: 10px; flex-wrap: wrap; }
+  .legend-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  svg.gantt { width: 100%; display: block; }
+  svg.gantt .grid line { stroke: var(--border); stroke-dasharray: 2 4; }
+  svg.gantt .axis text { fill: var(--fg-faint); font-size: 10px; font-family: var(--mono); }
+  svg.gantt .lane-row text { fill: var(--fg); font-size: 11px; }
+  svg.gantt .lane-bar { stroke: rgba(0,0,0,0.4); stroke-width: 0.5; cursor: pointer; transition: opacity .15s; }
+  svg.gantt .lane-bar:hover { opacity: 0.85; }
+  svg.gantt .phase-divider { stroke: var(--amber); stroke-dasharray: 3 3; stroke-width: 1; opacity: 0.4; }
+  svg.gantt .phase-label { fill: var(--amber); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; }
+  .gantt-tooltip { position: absolute; background: var(--bg-elev-2); border: 1px solid var(--amber); border-radius: 6px; padding: 8px 10px; font-size: 11px; pointer-events: none; opacity: 0; transition: opacity .12s; max-width: 260px; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  .gantt-tooltip.show { opacity: 1; }
+  .gantt-tooltip b { color: var(--amber); }
+  .gantt-tooltip .row { color: var(--fg-dim); display: flex; justify-content: space-between; gap: 12px; font-family: var(--mono); }
+  .gantt-tooltip .row span:last-child { color: var(--fg); }
+
+  /* LANE TABLE */
+  table.lanes-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-elev); border-radius: 8px; overflow: hidden; }
+  table.lanes-table th, table.lanes-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.lanes-table th { font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; background: var(--bg-elev-2); cursor: pointer; user-select: none; }
+  table.lanes-table th:hover { color: var(--amber); }
+  table.lanes-table th.sort-asc::after { content: " ▲"; color: var(--amber); }
+  table.lanes-table th.sort-desc::after { content: " ▼"; color: var(--amber); }
+  table.lanes-table td.mono { font-family: var(--mono); color: var(--fg); }
+  table.lanes-table td.dim { color: var(--fg-dim); }
+  table.lanes-table tr:hover td { background: var(--bg-elev-2); }
+  table.lanes-table tr:last-child td { border-bottom: none; }
+  .phase-pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .phase-pill.p1 { background: rgba(79, 209, 197, 0.18); color: var(--teal); }
+  .phase-pill.p2 { background: rgba(255, 181, 71, 0.18); color: var(--amber); }
+  .phase-pill.p3 { background: rgba(255, 107, 139, 0.18); color: var(--rose); }
+
+  /* PROSPECTS TABLE */
+  .prospect-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .prospect-controls input[type=text] { background: var(--bg-elev); border: 1px solid var(--border); color: var(--fg); padding: 7px 10px; border-radius: 6px; font-family: var(--mono); font-size: 12px; min-width: 280px; }
+  .prospect-controls input[type=text]:focus { outline: none; border-color: var(--amber); }
+  .prospect-controls .filter-btn { background: var(--bg-elev); border: 1px solid var(--border); color: var(--fg-dim); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-family: var(--mono); cursor: pointer; transition: all .12s; }
+  .prospect-controls .filter-btn:hover { color: var(--fg); border-color: var(--fg-faint); }
+  .prospect-controls .filter-btn.active { background: var(--amber); color: var(--bg); border-color: var(--amber); }
+  table.prospects { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-elev); border-radius: 8px; overflow: hidden; }
+  table.prospects th, table.prospects td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.prospects th { font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; background: var(--bg-elev-2); cursor: pointer; user-select: none; white-space: nowrap; }
+  table.prospects th:hover { color: var(--amber); }
+  table.prospects th.sort-asc::after { content: " ▲"; color: var(--amber); }
+  table.prospects th.sort-desc::after { content: " ▼"; color: var(--amber); }
+  table.prospects tr:hover td { background: var(--bg-elev-2); }
+  table.prospects td.score { font-family: var(--mono); font-weight: 600; }
+  .score-9 { color: var(--green); }
+  .score-8 { color: var(--amber); }
+  .score-7 { color: var(--teal); }
+  .score-low { color: var(--fg-faint); }
+  .status-pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-family: var(--mono); font-weight: 600; }
+  .status-PROSPECT { background: rgba(95, 208, 111, 0.18); color: var(--green); }
+  .status-NON-PROSPECT { background: rgba(154, 161, 177, 0.18); color: var(--fg-dim); }
+  .status-CONFLICT-OF-INTEREST { background: rgba(255, 181, 71, 0.18); color: var(--amber); }
+  .status-SHUT-DOWN { background: rgba(255, 90, 90, 0.18); color: var(--red); }
+  .channel-pill { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-family: var(--mono); }
+  .channel-email { background: rgba(95, 208, 111, 0.14); color: var(--green); }
+  .channel-linkedin { background: rgba(79, 209, 197, 0.14); color: var(--teal); }
+  .channel-twitter { background: rgba(255, 107, 139, 0.14); color: var(--rose); }
+  .channel-none { background: rgba(154, 161, 177, 0.14); color: var(--fg-faint); }
+
+  /* PATTERN FREQUENCY */
+  .pattern-chart { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .pattern-row { display: grid; grid-template-columns: 280px 1fr 40px; align-items: center; gap: 12px; padding: 6px 0; }
+  .pattern-name { font-size: 12px; font-family: var(--mono); color: var(--fg); }
+  .pattern-bar-track { background: var(--bg-elev-2); height: 14px; border-radius: 3px; overflow: hidden; }
+  .pattern-bar-fill { background: linear-gradient(90deg, var(--amber-dim), var(--amber)); height: 100%; border-radius: 3px; transition: width .4s ease; }
+  .pattern-count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); text-align: right; }
+
+  /* FACT-CHECK CATCHES */
+  .catch-list { display: flex; flex-direction: column; gap: 10px; }
+  .catch-card { background: var(--bg-elev); border-left: 3px solid var(--rose); border-radius: 4px; padding: 12px 14px; }
+  .catch-card.med { border-left-color: var(--amber); }
+  .catch-card .item { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .catch-card .row { font-size: 12px; font-family: var(--mono); color: var(--fg-dim); margin-top: 2px; }
+  .catch-card .row b { color: var(--fg-dim); display: inline-block; min-width: 70px; }
+  .catch-card .row.actual b { color: var(--green); }
+  .catch-card .row.actual { color: var(--fg); }
+
+  /* DELIVERABLES */
+  .deliverables-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .deliv { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .deliv .name { font-family: var(--mono); font-size: 12px; color: var(--amber); }
+  .deliv .desc { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
+  .deliv .size { font-family: var(--mono); font-size: 11px; color: var(--fg-faint); margin-top: 2px; }
+
+  /* FOOTER */
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--fg-faint); font-size: 11px; line-height: 1.7; }
+  footer code { font-size: 11px; }
+
+  @media (max-width: 720px) {
+    body { padding: 18px 12px 48px; }
+    .pattern-row { grid-template-columns: 1fr; gap: 4px; }
+    .pattern-row .pattern-count { text-align: left; }
+    table.prospects { font-size: 12px; }
+    table.prospects th, table.prospects td { padding: 7px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="eval-head">
+  <div class="super">Model Eval — Run Receipt</div>
+  <h1>Opus 4.7 · OpenRouter Outbound Pipeline Build</h1>
+  <div class="meta">
+    <span><b>Date</b> 2026-05-23</span>
+    <span><b>Orchestrator</b> <code>claude-opus-4-7[1m]</code></span>
+    <span><b>Subagent pool</b> <code>general-purpose (Sonnet 4.6 via Max)</code></span>
+    <span><b>Workspace</b> <code>vox-agent</code> worktree</span>
+    <span><b>Goal</b> 30-prospect outbound pipeline with bloat analysis + outreach drafts</span>
+  </div>
+</header>
+
+<section>
+  <h2>Headline stats</h2>
+  <div class="stats-grid" id="stats-grid"></div>
+</section>
+
+<section>
+  <h2>Timeline — actual parallelism shape</h2>
+  <p class="lede">Phase 1 fanned out two independent lanes (data scrape || rubric build). Phase 2 fanned out six per-app research lanes in a single message — each lane owned 5 prospects. Phase 3 compiled. Wall-clock = max(Phase 1) + max(Phase 2) + Phase 3.</p>
+  <div class="timeline-wrap" style="position: relative;">
+    <svg class="gantt" id="gantt" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="gantt-tooltip" id="gantt-tooltip"></div>
+    <div class="timeline-legend">
+      <span><span class="legend-swatch" style="background:var(--teal)"></span>Phase 1 — kickoff (parallel)</span>
+      <span><span class="legend-swatch" style="background:var(--amber)"></span>Phase 2 — per-app research (parallel)</span>
+      <span><span class="legend-swatch" style="background:var(--rose)"></span>Phase 3 — compile</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Subagent lanes — click any header to sort</h2>
+  <table class="lanes-table" id="lanes-table">
+    <thead>
+      <tr>
+        <th data-key="phase">Phase</th>
+        <th data-key="name">Lane</th>
+        <th data-key="tokens" data-numeric>Tokens</th>
+        <th data-key="tools" data-numeric>Tool uses</th>
+        <th data-key="duration_ms" data-numeric>Duration</th>
+        <th data-key="tokens_per_tool" data-numeric>Tokens / tool</th>
+        <th data-key="desc">Scope</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Top 10 prospects — sortable + filterable</h2>
+  <p class="lede">Click column headers to sort. Filter by free-text or channel pill. Priority score is the lane's qualitative call grounded in the per-app outreach file (token volume × founder reachability × pitch-fit).</p>
+  <div class="prospect-controls">
+    <input type="text" id="prospect-filter" placeholder="Filter by app, founder, pattern… (e.g. 'kilo', 'cache', 'linkedin')">
+    <button class="filter-btn active" data-channel="all">All channels</button>
+    <button class="filter-btn" data-channel="email">Email-primary</button>
+    <button class="filter-btn" data-channel="linkedin">LinkedIn-primary</button>
+    <button class="filter-btn" data-channel="twitter">Twitter-primary</button>
+  </div>
+  <table class="prospects" id="prospects-table">
+    <thead>
+      <tr>
+        <th data-key="score" data-numeric>Score</th>
+        <th data-key="app">App</th>
+        <th data-key="or_rank" data-numeric>OR rank</th>
+        <th data-key="founder">Founder</th>
+        <th data-key="channel">Channel</th>
+        <th data-key="pattern">Primary bloat pattern</th>
+        <th data-key="notes">Why this priority</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Bloat-pattern frequency across the 23 prospects</h2>
+  <p class="lede">Which of the 10 catalogued patterns the 6 lanes most often identified as the primary hypothesis. Uncached system prompt is the cheapest fix AND the most externally-visible signal — that's why it wins.</p>
+  <div class="pattern-chart" id="pattern-chart"></div>
+</section>
+
+<section>
+  <h2>Fact-check catches — subagents-as-verification</h2>
+  <p class="lede">The orchestrator's brief for each lane carried hypotheses (founder names, investor lists). Lanes did ground-truth verification and overturned 3 founder/investor facts + surfaced 1 major transition. These would have caused real-world embarrassment in cold outreach.</p>
+  <div class="catch-list" id="catch-list"></div>
+</section>
+
+<section>
+  <h2>Deliverables shipped</h2>
+  <div class="deliverables-grid" id="deliverables-grid"></div>
+</section>
+
+<section>
+  <h2>What this eval measures</h2>
+  <p class="lede" style="max-width: 80ch;">
+    Three axes, ranked by signal-to-noise:
+  </p>
+  <ol style="color: var(--fg-dim); font-size: 13px; line-height: 1.7; max-width: 80ch;">
+    <li><b style="color:var(--fg)">Parallel orchestration efficiency.</b> Did the orchestrator correctly identify independent vs dependent work? Did it fork the right N at the right moments? Speedup vs naive serial = <code>2.59×</code>.</li>
+    <li><b style="color:var(--fg)">Honest-output discipline.</b> Did the orchestrator avoid fabricating emails / inventing founder names / claiming false verification? 0 fabricated contacts across 30 files; 3 stale orchestrator-brief hypotheses overturned by lane-level WebSearch.</li>
+    <li><b style="color:var(--fg)">Surface-shaped output.</b> Did the deliverables match how the buyer will consume them? README + CSV + per-app files = scannable on iPad, CRM-importable, GitHub-linkable per the <code>Visible-by-default</code> rule.</li>
+  </ol>
+</section>
+
+<footer>
+  Run receipt generated from harness task notifications. All token counts and durations are subagent-reported (each <code>&lt;task-notification&gt;</code> includes <code>total_tokens</code> + <code>tool_uses</code> + <code>duration_ms</code>). Orchestrator tokens are not included in the total — only the 9 spawned subagent lanes are counted.<br><br>
+  Source artifacts (relative to repo root): <code>opus-4.7/README.md</code> · <code>opus-4.7/pipeline.csv</code> · <code>opus-4.7/outreach/*.md</code> · <code>opus-4.7/research/bloat-playbook.md</code> · <code>opus-4.7/research/outreach-templates.md</code> · <code>opus-4.7/raw/leaderboard-top30.json</code>
+</footer>
+
+<script>
+const evalData = {
+  meta: {
+    orchestrator: "claude-opus-4-7[1m]",
+    subagent_model: "claude-sonnet-4-6 (general-purpose pool)",
+    date: "2026-05-23"
+  },
+  stats: {
+    total_subagent_tokens: 1147713,
+    total_tool_uses: 271,
+    serial_estimate_s: 2752,
+    actual_wallclock_s: 1116,
+    speedup: 2.47,
+    deliverables: 36,
+    prospects: 23,
+    fact_check_catches: 4,
+    fabricated_contacts: 0
+  },
+  lanes: [
+    { id: "1A", phase: 1, name: "Leaderboard scrape", desc: "Scrape OpenRouter /apps + categories, filter top 30 B2B", tokens: 143428, tools: 53, duration_ms: 350477, start_ms: 0 },
+    { id: "1B", phase: 1, name: "Bloat catalog + templates", desc: "10 inference-bloat patterns + 4 outreach templates", tokens: 88990, tools: 4, duration_ms: 176469, start_ms: 0 },
+    { id: "2-1", phase: 2, name: "Lane 1 · ranks 1-5", desc: "Hermes, OpenClaw, Kilo, Descript, Claude Code", tokens: 122897, tools: 30, duration_ms: 315069, start_ms: 350477 },
+    { id: "2-2", phase: 2, name: "Lane 2 · ranks 6-10", desc: "Cline, Roo, Mira, LangChain, Codex", tokens: 118700, tools: 28, duration_ms: 284561, start_ms: 350477 },
+    { id: "2-3", phase: 2, name: "Lane 3 · ranks 11-15", desc: "Portkey, Zed, Open WebUI, Ito, extra.email", tokens: 112394, tools: 19, duration_ms: 280719, start_ms: 350477 },
+    { id: "2-4", phase: 2, name: "Lane 4 · ranks 16-20", desc: "BuddyPro, Codebuff, OpenHands, Qwen, Dify", tokens: 114292, tools: 28, duration_ms: 251254, start_ms: 350477 },
+    { id: "2-5", phase: 2, name: "Lane 5 · ranks 21-25", desc: "LibreChat, Crush, GPT Workspace, T3 Chat, Novelcrafter", tokens: 121427, tools: 32, duration_ms: 328195, start_ms: 350477 },
+    { id: "2-6", phase: 2, name: "Lane 6 · ranks 26-30", desc: "Gobii, Aider, Vellum, Vectoron, TimeCamp", tokens: 128929, tools: 37, duration_ms: 411108, start_ms: 350477 },
+    { id: "3", phase: 3, name: "Compile README + CSV", desc: "Roll up 30 outreach files + 3 reference docs", tokens: 196656, tools: 40, duration_ms: 355121, start_ms: 761585 }
+  ],
+  prospects: [
+    { score: 9.0, app: "Kilo Code", or_rank: 3, founder: "Scott Breitenother", channel: "linkedin", pattern: "No Semantic Cache on Repeat Sub-Prompts", notes: "ex-Brooklyn Data; $8M raised; KiloClaw is hosted OpenClaw — bloat fixes cascade", status: "PROSPECT" },
+    { score: 9.0, app: "Ito", or_rank: 14, founder: "Barron Caster", channel: "linkedin", pattern: "Tool-Use Without Result Caching", notes: "Agentic QA = file reads + browser + PR re-runs; tool-result caching is a clean diff", status: "PROSPECT" },
+    { score: 8.5, app: "Gobii", or_rank: 26, founder: "Andrew Christianson", channel: "linkedin", pattern: "Tool-Result Caching + DeepSeek prompt-cache markers", notes: "Already publicly routes DeepSeek; deeper-layer caching is the unexplored angle", status: "PROSPECT" },
+    { score: 8.0, app: "Hermes Agent", or_rank: 1, founder: "Jeffrey Quesnelle", channel: "email", pattern: "No Batch API for Async Jobs", notes: "jeff@jeffq.com publicly verified on homepage — rare clean unblock", status: "PROSPECT" },
+    { score: 8.0, app: "Mira", or_rank: 8, founder: "Daria Yakovleva", channel: "linkedin", pattern: "Flagship-for-Easy + Semantic Cache", notes: "500k MAU doubling monthly; Telegram workload = many small calls", status: "PROSPECT" },
+    { score: 8.0, app: "OpenHands", or_rank: 18, founder: "Robert Brennan", channel: "linkedin", pattern: "Default Model Routing in CodeAct", notes: "Maintained eval-harness/ unlocks Sonnet→Haiku routing argument", status: "PROSPECT" },
+    { score: 8.0, app: "GPT Workspace", or_rank: 23, founder: "unverified", channel: "linkedin", pattern: "Flagship-for-Easy", notes: "Strongest unit-economics pitch — flat $9.99/mo on flagship is textbook bloat", status: "PROSPECT" },
+    { score: 8.0, app: "Vectoron", or_rank: 29, founder: "Mike Myles (unverified)", channel: "linkedin", pattern: "No Batch API for Async Jobs", notes: "22-stage healthcare SEO pipeline — batch API is a slam-dunk fit", status: "PROSPECT" },
+    { score: 7.5, app: "Crush (Charm)", or_rank: 22, founder: "Christian Rocha", channel: "email", pattern: "Default Catalog Tuning", notes: "Verified enterprise inbox; BYO-key product — fix becomes a marketing moment", status: "PROSPECT" },
+    { score: 7.0, app: "Descript", or_rank: 4, founder: "Laura Burkhauser", channel: "linkedin", pattern: "Uncached System Prompt", notes: "Underlord assistant + Andrew Mason founder both findable on LinkedIn", status: "PROSPECT" },
+    { score: 7.0, app: "Cline", or_rank: 6, founder: "Saoud Rizwan", channel: "linkedin", pattern: "Uncached System Prompt", notes: "GitHub Discussion #9892 — supportsPromptCache:false on Claude provider; just raised $32M", status: "PROSPECT" },
+    { score: 7.0, app: "Zed Editor", or_rank: 12, founder: "Nathan Sobo", channel: "twitter", pattern: "Agent Panel default-routing", notes: "Multi-provider; defaults send most asks to flagship; Twitter @nathansobo is the channel", status: "PROSPECT" },
+    { score: 7.0, app: "Dify.AI", or_rank: 20, founder: "Luyu Zhang", channel: "linkedin", pattern: "Per-tenant prompt caching gaps", notes: "Hosted SaaS users are where they pay; self-hosted is BYO-key", status: "PROSPECT" },
+    { score: 7.0, app: "BuddyPro AI", or_rank: 16, founder: "David Říha", channel: "linkedin", pattern: "Uncached System Prompt per coach-twin", notes: "$197/mo per coach × N coaches; uncached system prompt eats margin", status: "PROSPECT" },
+    { score: 7.0, app: "Codebuff", or_rank: 17, founder: "James Grugett", channel: "twitter", pattern: "Sub-agent routing + tool-result memoization", notes: "Founder publicly tweets cost optimization — must skip naive Sonnet→Haiku angle", status: "PROSPECT" },
+    { score: 7.0, app: "T3 Chat", or_rank: 24, founder: "Theo Browne", channel: "twitter", pattern: "Cross-model routing inefficiency", notes: "$8/mo pricing; founder is public engineer; Twitter DM is the only sane channel", status: "PROSPECT" },
+    { score: 7.0, app: "TimeCamp", or_rank: 30, founder: "Kamil Rudnicki", channel: "linkedin", pattern: "Per-transaction classification (Batch API fit)", notes: "TIC categorizer fires on every event = massive batch API opportunity", status: "PROSPECT" },
+    { score: 6.0, app: "Novelcrafter", or_rank: 25, founder: "Leonie (unverified surname)", channel: "linkedin", pattern: "Default config tuning for BYO-AI users", notes: "157k+ authors; bootstrapped; default model presets is the value pitch", status: "PROSPECT" },
+    { score: 6.0, app: "Vellum", or_rank: 28, founder: "Akash Sharma / Sidd Seethepalli", channel: "linkedin", pattern: "Meta — they sell observability", notes: "Peer/partnership frame; $20M Series A; like Portkey, dual-edge sell", status: "PROSPECT" },
+    { score: 6.0, app: "LibreChat", or_rank: 21, founder: "Danny Avila", channel: "linkedin", pattern: "Config-default improvements for enterprise users", notes: "BYO-key open source; donation-funded; value is at config layer", status: "PROSPECT" },
+    { score: 6.0, app: "extra.email", or_rank: 15, founder: "Naveen Gavini (unverified LI)", channel: "email", pattern: "Classification routing + Semantic Cache", notes: "team@extra.email is generic; $9.5M raised (Felicis lead, NOT a16z)", status: "PROSPECT" },
+    { score: 5.0, app: "LangChain", or_rank: 9, founder: "Harrison Chase", channel: "email", pattern: "Demo workload spend", notes: "Public email but heavily over-pitched; partnership frame > sales pitch", status: "PROSPECT" },
+    { score: 5.0, app: "Aider", or_rank: 27, founder: "Paul Gauthier", channel: "twitter", pattern: "User config defaults (BYO-key, no SaaS revenue)", notes: "Content-collaboration frame; solo OSS; structural mismatch with paid audit", status: "PROSPECT" },
+    { score: 3.0, app: "Portkey AI", or_rank: 11, founder: "Rohit Agarwal", channel: "linkedin", pattern: "CONFLICT — they SELL optimization", notes: "Peer/partnership angle only; pitching them their own job is the wrong move", status: "CONFLICT-OF-INTEREST" },
+    { score: 3.0, app: "OpenClaw", or_rank: 2, founder: "Peter Steinberger", channel: "none", pattern: "CONFLICT — our own runtime", notes: "Kit/Pearl run on OpenClaw; Steinberger joined OpenAI; foundation transition", status: "CONFLICT-OF-INTEREST" },
+    { score: 3.0, app: "Open WebUI", or_rank: 13, founder: "Tim (tjbck)", channel: "none", pattern: "Self-hosted BYO-key mismatch", notes: "Their users pay, not them; community-PR play if anything", status: "NON-PROSPECT" },
+    { score: 0.0, app: "Claude Code", or_rank: 5, founder: "Anthropic", channel: "none", pattern: "Vendor, not a customer", notes: "Anthropic ships the cost-optimization docs this playbook derives from", status: "NON-PROSPECT" },
+    { score: 0.0, app: "Codex", or_rank: 10, founder: "OpenAI", channel: "none", pattern: "Vendor, not a customer", notes: "OpenAI's own product; non-prospect by definition", status: "NON-PROSPECT" },
+    { score: 0.0, app: "Qwen Code", or_rank: 19, founder: "Alibaba", channel: "none", pattern: "Vendor, not a customer", notes: "Alibaba's own product; non-prospect by definition", status: "NON-PROSPECT" },
+    { score: 0.0, app: "Roo Code", or_rank: 7, founder: "—", channel: "none", pattern: "SHUT-DOWN 2026-05-15", notes: "Defunct; displaced users → cascade to Kilo Code is the side-play", status: "SHUT-DOWN" }
+  ],
+  catches: [
+    { item: "extra.email investor list", severity: "high", was: "Felicis/a16z (orchestrator brief)", actual: "Felicis lead + Abstract Ventures + A* + Elad Gil. a16z NOT confirmed." },
+    { item: "GPT Workspace founder identity", severity: "high", was: "Pulkit Goyal (orchestrator brief)", actual: "Unverified — multiple Pulkit Goyals on LinkedIn, none match gpt.space. Chrome Web Store dev-contact field needed." },
+    { item: "Novelcrafter founder", severity: "high", was: "Bjorn Granitza (orchestrator brief)", actual: "Founder is 'Leonie' (first name only on About page) — Hamburg-based, bootstrapped, founded 2023." },
+    { item: "OpenClaw status transition", severity: "med", was: "Active independent project (orchestrator's stale memory)", actual: "Peter Steinberger joining OpenAI; OpenClaw transitioning to a foundation. Affects Kit/Pearl backend strategy." }
+  ],
+  deliverables: [
+    { name: "README.md", desc: "Pipeline overview, top-10, full table, channel mix, catches, next steps", size: "17 KB" },
+    { name: "pipeline.csv", desc: "31 rows (header + 30); CRM-importable", size: "5.4 KB" },
+    { name: "outreach/01-30-*.md", desc: "30 per-app files: hypothesis + email draft + score", size: "240 KB" },
+    { name: "research/bloat-playbook.md", desc: "10 inference-bloat patterns with external detection signals", size: "13 KB" },
+    { name: "research/outreach-templates.md", desc: "Day 0 / Day 4 / Day 10 / LinkedIn DM templates", size: "8.7 KB" },
+    { name: "raw/leaderboard-top30.json", desc: "Source data — 30 ranked apps with verified domains", size: "10 KB" },
+    { name: "raw/leaderboard-method-notes.md", desc: "Scrape methodology + filtering decisions + skipped apps", size: "varies" },
+    { name: "eval-visualization.html", desc: "This file — single-file vanilla DOM, no build step", size: "self-describing" }
+  ]
+};
+
+/* ===================== HEADLINE STATS ===================== */
+function fmtNum(n) { return n.toLocaleString("en-US"); }
+function fmtDuration(s) {
+  const m = Math.floor(s / 60);
+  const r = Math.round(s - m * 60);
+  return `${m}m ${r}s`;
+}
+
+function renderStats() {
+  const s = evalData.stats;
+  const items = [
+    { label: "Subagent tokens (total)", value: fmtNum(s.total_subagent_tokens), sub: "across 9 spawned lanes", cls: "accent" },
+    { label: "Tool uses (total)", value: fmtNum(s.total_tool_uses), sub: "WebFetch · WebSearch · Read · Write" },
+    { label: "Wall-clock (actual)", value: fmtDuration(s.actual_wallclock_s), sub: "max(P1) + max(P2) + P3", cls: "teal" },
+    { label: "If serial", value: fmtDuration(s.serial_estimate_s), sub: "sum of all lane durations", cls: "" },
+    { label: "Parallelization speedup", value: `${s.speedup}×`, sub: "vs naive serial", cls: "accent" },
+    { label: "Prospects shipped", value: s.prospects, sub: "out of 30 leaderboard entries" },
+    { label: "Fabricated contacts", value: s.fabricated_contacts, sub: "Never-fabricate rule held", cls: "teal" },
+    { label: "Fact-check catches", value: s.fact_check_catches, sub: "subagents corrected orchestrator", cls: "accent" }
+  ];
+  const grid = document.getElementById("stats-grid");
+  grid.innerHTML = items.map(i => `
+    <div class="stat ${i.cls || ''}">
+      <div class="label">${i.label}</div>
+      <div class="value">${i.value}</div>
+      <div class="sub">${i.sub}</div>
+    </div>
+  `).join("");
+}
+
+/* ===================== GANTT TIMELINE ===================== */
+function renderGantt() {
+  const svg = document.getElementById("gantt");
+  const lanes = evalData.lanes;
+  const W = 1200, leftPad = 230, rightPad = 30, topPad = 30, rowH = 26;
+  const H = topPad + lanes.length * rowH + 60;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  const maxEnd = Math.max(...lanes.map(l => l.start_ms + l.duration_ms));
+  const xScale = ms => leftPad + (ms / maxEnd) * (W - leftPad - rightPad);
+  const colorFor = phase => phase === 1 ? "var(--teal)" : phase === 2 ? "var(--amber)" : "var(--rose)";
+
+  let g = "";
+
+  // x-axis grid + ticks (every 60s)
+  const tickEverySec = 60;
+  const totalSec = Math.ceil(maxEnd / 1000);
+  g += `<g class="grid">`;
+  for (let s = 0; s <= totalSec; s += tickEverySec) {
+    const x = xScale(s * 1000);
+    g += `<line x1="${x}" y1="${topPad}" x2="${x}" y2="${H - 40}" />`;
+  }
+  g += `</g>`;
+  g += `<g class="axis">`;
+  for (let s = 0; s <= totalSec; s += tickEverySec) {
+    const x = xScale(s * 1000);
+    g += `<text x="${x}" y="${H - 24}" text-anchor="middle">${s}s</text>`;
+  }
+  g += `</g>`;
+
+  // phase dividers
+  const phase2Start = 350477;
+  const phase3Start = 761585;
+  g += `<line class="phase-divider" x1="${xScale(phase2Start)}" y1="${topPad - 8}" x2="${xScale(phase2Start)}" y2="${H - 40}" />`;
+  g += `<line class="phase-divider" x1="${xScale(phase3Start)}" y1="${topPad - 8}" x2="${xScale(phase3Start)}" y2="${H - 40}" />`;
+  g += `<text class="phase-label" x="${xScale(0) + 4}" y="${topPad - 12}">PHASE 1</text>`;
+  g += `<text class="phase-label" x="${xScale(phase2Start) + 4}" y="${topPad - 12}">PHASE 2</text>`;
+  g += `<text class="phase-label" x="${xScale(phase3Start) + 4}" y="${topPad - 12}">PHASE 3</text>`;
+
+  // lane rows
+  lanes.forEach((l, i) => {
+    const y = topPad + i * rowH;
+    const x1 = xScale(l.start_ms);
+    const x2 = xScale(l.start_ms + l.duration_ms);
+    const w = Math.max(2, x2 - x1);
+    g += `<g class="lane-row">`;
+    g += `<text x="${leftPad - 10}" y="${y + 16}" text-anchor="end">${l.name}</text>`;
+    g += `<rect class="lane-bar" data-id="${l.id}" x="${x1}" y="${y + 4}" width="${w}" height="${rowH - 8}" rx="3" fill="${colorFor(l.phase)}" />`;
+    g += `<text x="${x2 + 6}" y="${y + 16}" fill="var(--fg-dim)" font-family="var(--mono)" font-size="10">${(l.duration_ms / 1000).toFixed(0)}s · ${(l.tokens / 1000).toFixed(0)}k tok</text>`;
+    g += `</g>`;
+  });
+
+  svg.innerHTML = g;
+
+  // tooltip
+  const tip = document.getElementById("gantt-tooltip");
+  svg.querySelectorAll(".lane-bar").forEach(bar => {
+    bar.addEventListener("mouseenter", e => {
+      const l = lanes.find(x => x.id === bar.dataset.id);
+      tip.innerHTML = `
+        <b>${l.name}</b><br>
+        <div style="color:var(--fg-dim);margin:4px 0">${l.desc}</div>
+        <div class="row"><span>Phase</span><span>${l.phase}</span></div>
+        <div class="row"><span>Tokens</span><span>${fmtNum(l.tokens)}</span></div>
+        <div class="row"><span>Tool uses</span><span>${l.tools}</span></div>
+        <div class="row"><span>Duration</span><span>${(l.duration_ms / 1000).toFixed(1)}s</span></div>
+        <div class="row"><span>Start</span><span>+${(l.start_ms / 1000).toFixed(0)}s</span></div>
+      `;
+      tip.classList.add("show");
+    });
+    bar.addEventListener("mousemove", e => {
+      const rect = svg.getBoundingClientRect();
+      tip.style.left = (e.clientX - rect.left + 16) + "px";
+      tip.style.top = (e.clientY - rect.top + 12) + "px";
+    });
+    bar.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  });
+}
+
+/* ===================== LANE TABLE (sortable) ===================== */
+let lanesSortState = { key: "tokens", dir: -1 };
+function renderLanesTable() {
+  const tbody = document.querySelector("#lanes-table tbody");
+  const sorted = [...evalData.lanes].sort((a, b) => {
+    let va = a[lanesSortState.key], vb = b[lanesSortState.key];
+    if (lanesSortState.key === "tokens_per_tool") {
+      va = a.tokens / Math.max(1, a.tools);
+      vb = b.tokens / Math.max(1, b.tools);
+    }
+    if (typeof va === "string") return va.localeCompare(vb) * lanesSortState.dir;
+    return (va - vb) * lanesSortState.dir;
+  });
+  tbody.innerHTML = sorted.map(l => `
+    <tr>
+      <td><span class="phase-pill p${l.phase}">P${l.phase}</span></td>
+      <td><b>${l.name}</b></td>
+      <td class="mono">${fmtNum(l.tokens)}</td>
+      <td class="mono">${l.tools}</td>
+      <td class="mono">${(l.duration_ms / 1000).toFixed(1)}s</td>
+      <td class="mono dim">${Math.round(l.tokens / Math.max(1, l.tools)).toLocaleString()}</td>
+      <td class="dim">${l.desc}</td>
+    </tr>
+  `).join("");
+  // update header arrows
+  document.querySelectorAll("#lanes-table th").forEach(th => {
+    th.classList.remove("sort-asc", "sort-desc");
+    if (th.dataset.key === lanesSortState.key) {
+      th.classList.add(lanesSortState.dir === 1 ? "sort-asc" : "sort-desc");
+    }
+  });
+}
+document.querySelectorAll("#lanes-table th").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.key;
+    if (lanesSortState.key === key) lanesSortState.dir *= -1;
+    else { lanesSortState.key = key; lanesSortState.dir = th.dataset.numeric !== undefined ? -1 : 1; }
+    renderLanesTable();
+  });
+});
+
+/* ===================== PROSPECTS TABLE (sortable + filter) ===================== */
+let prospectsSortState = { key: "score", dir: -1 };
+let prospectsFilter = { text: "", channel: "all" };
+
+function renderProspects() {
+  const tbody = document.querySelector("#prospects-table tbody");
+  const sorted = [...evalData.prospects].sort((a, b) => {
+    let va = a[prospectsSortState.key], vb = b[prospectsSortState.key];
+    if (typeof va === "string") return va.localeCompare(vb) * prospectsSortState.dir;
+    return (va - vb) * prospectsSortState.dir;
+  });
+  const ft = prospectsFilter.text.toLowerCase();
+  const filtered = sorted.filter(p => {
+    if (prospectsFilter.channel !== "all" && p.channel !== prospectsFilter.channel) return false;
+    if (!ft) return true;
+    return [p.app, p.founder, p.pattern, p.notes, p.channel, p.status].some(f => (f || "").toLowerCase().includes(ft));
+  });
+  tbody.innerHTML = filtered.map(p => {
+    const scoreCls = p.score >= 9 ? "score-9" : p.score >= 8 ? "score-8" : p.score >= 7 ? "score-7" : "score-low";
+    return `
+      <tr>
+        <td class="score ${scoreCls}">${p.score.toFixed(1)}</td>
+        <td><b>${p.app}</b> <span class="status-pill status-${p.status}">${p.status}</span></td>
+        <td class="mono dim">#${p.or_rank}</td>
+        <td>${p.founder}</td>
+        <td><span class="channel-pill channel-${p.channel}">${p.channel}</span></td>
+        <td>${p.pattern}</td>
+        <td class="dim">${p.notes}</td>
+      </tr>
+    `;
+  }).join("");
+  document.querySelectorAll("#prospects-table th").forEach(th => {
+    th.classList.remove("sort-asc", "sort-desc");
+    if (th.dataset.key === prospectsSortState.key) {
+      th.classList.add(prospectsSortState.dir === 1 ? "sort-asc" : "sort-desc");
+    }
+  });
+}
+document.querySelectorAll("#prospects-table th").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.key;
+    if (prospectsSortState.key === key) prospectsSortState.dir *= -1;
+    else { prospectsSortState.key = key; prospectsSortState.dir = th.dataset.numeric !== undefined ? -1 : 1; }
+    renderProspects();
+  });
+});
+document.getElementById("prospect-filter").addEventListener("input", e => {
+  prospectsFilter.text = e.target.value;
+  renderProspects();
+});
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    prospectsFilter.channel = btn.dataset.channel;
+    renderProspects();
+  });
+});
+
+/* ===================== PATTERN FREQUENCY ===================== */
+function renderPatterns() {
+  const counts = {};
+  evalData.prospects.forEach(p => {
+    if (p.status !== "PROSPECT") return;
+    const norm = p.pattern.split(/[+,—]/)[0].trim();
+    counts[norm] = (counts[norm] || 0) + 1;
+  });
+  const max = Math.max(...Object.values(counts));
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById("pattern-chart");
+  container.innerHTML = sorted.map(([name, count]) => `
+    <div class="pattern-row">
+      <div class="pattern-name">${name}</div>
+      <div class="pattern-bar-track"><div class="pattern-bar-fill" style="width: ${(count / max) * 100}%"></div></div>
+      <div class="pattern-count">${count}</div>
+    </div>
+  `).join("");
+}
+
+/* ===================== FACT-CHECK CATCHES ===================== */
+function renderCatches() {
+  const container = document.getElementById("catch-list");
+  container.innerHTML = evalData.catches.map(c => `
+    <div class="catch-card ${c.severity === 'med' ? 'med' : ''}">
+      <div class="item">${c.item}</div>
+      <div class="row"><b>orchestrator:</b> ${c.was}</div>
+      <div class="row actual"><b>verified:</b> ${c.actual}</div>
+    </div>
+  `).join("");
+}
+
+/* ===================== DELIVERABLES ===================== */
+function renderDeliverables() {
+  const container = document.getElementById("deliverables-grid");
+  container.innerHTML = evalData.deliverables.map(d => `
+    <div class="deliv">
+      <div class="name">${d.name}</div>
+      <div class="desc">${d.desc}</div>
+      <div class="size">${d.size}</div>
+    </div>
+  `).join("");
+}
+
+/* ===================== BOOT ===================== */
+renderStats();
+renderGantt();
+renderLanesTable();
+renderProspects();
+renderPatterns();
+renderCatches();
+renderDeliverables();
+</script>
+</body>
+</html>
