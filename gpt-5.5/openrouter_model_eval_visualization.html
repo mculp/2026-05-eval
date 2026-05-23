@@ -1,0 +1,1807 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenRouter Outbound Pipeline Model Eval</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5e6b7f;
+      --line: #dbe2ea;
+      --panel: #ffffff;
+      --page: #f4f7fb;
+      --navy: #19324d;
+      --teal: #0f766e;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --red: #b42318;
+      --green: #15803d;
+      --violet: #6d28d9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .shell {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      gap: 28px;
+      padding: 28px 0 20px;
+      align-items: end;
+    }
+
+    .hero > *,
+    .grid-2 > * {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 920px;
+      font-size: clamp(2rem, 4vw, 4.8rem);
+      line-height: 0.98;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: 0;
+      overflow-wrap: break-word;
+    }
+
+    h1 span {
+      display: inline;
+    }
+
+    .lede {
+      margin: 14px 0 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.4vw, 1.25rem);
+      line-height: 1.5;
+      overflow-wrap: break-word;
+    }
+
+    .source-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 16px;
+      overflow-wrap: anywhere;
+    }
+
+    .source-box h2 {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+
+    .source-box p {
+      margin: 8px 0;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.92rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+      gap: 10px;
+      padding: 16px 0 28px;
+      overflow-x: auto;
+    }
+
+    .metric {
+      min-height: 94px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.2;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .metric-value {
+      margin-top: 12px;
+      font-size: clamp(1.1rem, 1.7vw, 1.75rem);
+      line-height: 1.08;
+      font-weight: 800;
+      color: var(--navy);
+      overflow-wrap: normal;
+    }
+
+    main {
+      padding: 26px 0 56px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin: 0 0 14px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(1.25rem, 2vw, 2rem);
+      color: var(--navy);
+    }
+
+    .section-head p {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .lanes {
+      display: grid;
+      gap: 12px;
+    }
+
+    .lane {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+
+    .lane-index {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .lane-topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .lane h3,
+    .subagent h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+
+    .lane-topline span {
+      color: var(--green);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .lane p,
+    .subagent p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.4;
+      font-size: 0.92rem;
+    }
+
+    .lane dl {
+      display: grid;
+      grid-template-columns: 0.75fr 1.25fr;
+      gap: 8px;
+      margin: 12px 0 0;
+    }
+
+    .lane dl div {
+      min-width: 0;
+    }
+
+    .lane dt {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .lane dd {
+      margin: 3px 0 0;
+      font-size: 0.88rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .subagents {
+      display: grid;
+      gap: 14px;
+    }
+
+    .subagent {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+
+    .count {
+      min-height: 62px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #e7f1ff;
+      color: var(--blue);
+      font-size: 2rem;
+      font-weight: 900;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .summary-list li {
+      padding-left: 18px;
+      border-left: 4px solid var(--teal);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .bloat-row,
+    .segment {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .bloat-title,
+    .segment {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bloat-title strong,
+    .segment strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .segment span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .segment-bar {
+      grid-column: 1 / -1;
+      height: 10px;
+      background: #edf2f7;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .segment-bar i {
+      display: block;
+      height: 100%;
+      background: var(--teal);
+      border-radius: inherit;
+    }
+
+    .segment b {
+      justify-self: end;
+      color: var(--navy);
+    }
+
+    .risk {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 78px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .risk.very-high {
+      background: #fee2e2;
+      color: var(--red);
+    }
+
+    .risk.high {
+      background: #fff7ed;
+      color: var(--amber);
+    }
+
+    .risk.medium {
+      background: #dcfce7;
+      color: var(--green);
+    }
+
+    .barline {
+      display: grid;
+      grid-template-columns: 112px minmax(80px, 1fr) 76px;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .barline div {
+      height: 8px;
+      background: #edf2f7;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .barline i {
+      display: block;
+      height: 100%;
+      background: var(--blue);
+      border-radius: inherit;
+    }
+
+    .barline.alt i {
+      background: var(--violet);
+    }
+
+    .barline b {
+      color: var(--ink);
+      text-align: right;
+      font-size: 0.82rem;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      max-width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1120px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.35;
+      font-size: 0.9rem;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--navy);
+      color: #fff;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    td span {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: 0.82rem;
+    }
+
+    .note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .spacer {
+      height: 26px;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-head p {
+        margin-top: 8px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: min(100% - 20px, 1480px);
+      }
+
+      h1 {
+        font-size: clamp(1.9rem, 10vw, 2.9rem);
+      }
+
+      h1 span {
+        display: block;
+      }
+
+      .lede,
+      .source-box p {
+        font-size: 0.94rem;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .lane,
+      .subagent,
+      .barline {
+        grid-template-columns: 1fr;
+      }
+
+      .lane-index {
+        width: 30px;
+        height: 30px;
+      }
+
+      .lane dl {
+        grid-template-columns: 1fr;
+      }
+
+      .barline b {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <h1><span>OpenRouter</span> <span>Outbound</span> <span>Pipeline</span> <span>Model Eval</span></h1>
+          <p class="lede">A visual audit of the 30-account B2B/Productivity AI outbound build: how the work moved through lanes, what was delegated, which token signals drove priority, and which accounts rose to the top.</p>
+        </div>
+        <aside class="source-box">
+          <h2>Run Context</h2>
+          <p><strong>Built:</strong> May 23, 2026, America/Chicago</p>
+          <p><strong>OpenRouter fetch:</strong> 2026-05-23T18:11:57.535Z</p>
+          <p><strong>Sources:</strong> <a href="https://openrouter.ai/apps/category/productivity">productivity</a>, <a href="https://openrouter.ai/apps/category/coding">coding</a>, <a href="https://openrouter.ai/apps/category/creative">creative</a></p>
+          <p><strong>Telemetry note:</strong> exact Codex model token usage is not exposed here; OpenRouter target-token usage is shown below.</p>
+        </aside>
+      </section>
+      <section class="metrics" aria-label="Evaluation metrics">
+        
+    <section class="metric">
+      <div class="metric-label">Selected targets</div>
+      <div class="metric-value">30</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">OpenRouter listings scraped</div>
+      <div class="metric-value">78</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Detail pages scraped</div>
+      <div class="metric-value">78</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Selected daily tokens</div>
+      <div class="metric-value">855.30B</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Selected daily requests</div>
+      <div class="metric-value">17.2M</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Weighted tokens/request</div>
+      <div class="metric-value">49,703</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Median tokens/request</div>
+      <div class="metric-value">36,630</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">High-confidence routes</div>
+      <div class="metric-value">19</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Subagents used</div>
+      <div class="metric-value">0</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Artifact-build window</div>
+      <div class="metric-value">9m 54s</div>
+    </section>
+  
+    <section class="metric">
+      <div class="metric-label">Exact Codex tokens</div>
+      <div class="metric-value">Unavailable</div>
+    </section>
+  
+      </section>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="grid-2">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Execution Lanes</h2>
+        </div>
+        <div class="lanes">
+    <article class="lane" style="--lane-index:1">
+      <div class="lane-index">1</div>
+      <div>
+        <div class="lane-topline">
+          <h3>1. Leaderboard Harvest</h3>
+          <span>Complete</span>
+        </div>
+        <p>Fetched OpenRouter app RSC data across Productivity, Coding Agents, and Creative pages.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>78 unique app listings, 78 detail pages</dd></div>
+        </dl>
+      </div>
+    </article>
+  
+    <article class="lane" style="--lane-index:2">
+      <div class="lane-index">2</div>
+      <div>
+        <div class="lane-topline">
+          <h3>2. Intent Filter</h3>
+          <span>Complete</span>
+        </div>
+        <p>Selected products with B2B/productivity motion, agent loops, workflow automation, or developer-tool spend.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>30 outbound targets</dd></div>
+        </dl>
+      </div>
+    </article>
+  
+    <article class="lane" style="--lane-index:3">
+      <div class="lane-index">3</div>
+      <div>
+        <div class="lane-topline">
+          <h3>3. Token-Bloat Model</h3>
+          <span>Complete</span>
+        </div>
+        <p>Scored daily volume, average tokens/request, premium model mix, B2B fit, and contact confidence.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>13 very-high risk, 26 high-or-higher risk</dd></div>
+        </dl>
+      </div>
+    </article>
+  
+    <article class="lane" style="--lane-index:4">
+      <div class="lane-index">4</div>
+      <div>
+        <div class="lane-topline">
+          <h3>4. Founder &amp; Route Enrichment</h3>
+          <span>Complete</span>
+        </div>
+        <p>Used public founder pages, company pages, Crunchbase/CB Insights-style profiles, docs, and contact pages.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>19 high-confidence public routes</dd></div>
+        </dl>
+      </div>
+    </article>
+  
+    <article class="lane" style="--lane-index:5">
+      <div class="lane-index">5</div>
+      <div>
+        <div class="lane-topline">
+          <h3>5. Outreach Synthesis</h3>
+          <span>Complete</span>
+        </div>
+        <p>Drafted first-touch, two follow-ups, and LinkedIn note around each product&#039;s public usage signal.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>120 outbound touches</dd></div>
+        </dl>
+      </div>
+    </article>
+  
+    <article class="lane" style="--lane-index:6">
+      <div class="lane-index">6</div>
+      <div>
+        <div class="lane-topline">
+          <h3>6. QA / Export</h3>
+          <span>Complete</span>
+        </div>
+        <p>Rendered workbook sheets and scanned for spreadsheet formula errors.</p>
+        <dl>
+          <div><dt>Owner</dt><dd>Codex main thread</dd></div>
+          <div><dt>Output</dt><dd>XLSX artifact plus this standalone eval</dd></div>
+        </dl>
+      </div>
+    </article>
+  </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Subagents & Tooling</h2>
+          <p>The run stayed on the main thread; parallelism came from local shell/web/tool lanes, not delegated agent workers.</p>
+        </div>
+        <div class="subagents">
+    <article class="subagent">
+      <div class="count">0</div>
+      <div>
+        <h3>Subagents</h3>
+        <p>No delegated subagents were used. All scraping, enrichment, scoring, workbook generation, and HTML visualization were done in the main Codex thread.</p>
+      </div>
+    </article>
+  
+    <article class="subagent">
+      <div class="count">4</div>
+      <div>
+        <h3>Tool lanes</h3>
+        <p>Web research, shell/Node scripts, spreadsheet artifact rendering, and local HTML generation.</p>
+      </div>
+    </article>
+  </div>
+        <div class="spacer"></div>
+        <h2>Top-Choice Readout</h2>
+        <ul class="summary-list">
+          <li>Kilo Code, Cline, Zed, OpenHands, Aider, Roo Code, and Codebuff are the strongest coding-agent lane because repo maps, tool traces, retry loops, and premium model use are easy to tie to margin.</li><li>Hermes Agent and OpenClaw are the strongest autonomous-agent lane because persistent memory, scheduled execution, tools, and subagents create very direct context-growth hypotheses.</li><li>Dify, Portkey, and Open WebUI are platform-style targets where a token-bloat audit can become a product or partnership conversation, not only a one-off cost cut.</li><li>Descript, extra.email, Vectoron, HyperWrite, Supsis, and TimeCamp are less pure developer tools but have concrete recurring workflow context that makes personalization sharp.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Top 10 Accounts</h2>
+        <p>Sorted by priority score: token volume, tokens/request, premium-model mix, B2B fit, risk, and contact confidence.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Target</th>
+              <th>Score</th>
+              <th>Risk</th>
+              <th>Daily Tokens</th>
+              <th>Tokens / Request</th>
+              <th>Premium Mix</th>
+              <th>Founder / Route</th>
+              <th>Outbound Angle</th>
+            </tr>
+          </thead>
+          <tbody>
+    <tr>
+      <td>1</td>
+      <td>
+        <a href="https://kilocode.ai/">Kilo Code</a>
+        <span>AI coding agent</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>142.93B</td>
+      <td>66,978</td>
+      <td>8%</td>
+      <td>Sid Sijbrandij and Scott Breitenother, co-founders</td>
+      <td>Introduce mode-aware context budgets, delta repo maps, and cheap-model preflight checks before premium coding calls.</td>
+    </tr>
+  
+    <tr>
+      <td>2</td>
+      <td>
+        <a href="https://cline.bot/">Cline</a>
+        <span>AI coding agent</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>24.76B</td>
+      <td>87,335</td>
+      <td>42%</td>
+      <td>Saoud Rizwan, founder and CEO</td>
+      <td>Trace context growth by phase and add budgets for exploration, edit, test, and repair loops.</td>
+    </tr>
+  
+    <tr>
+      <td>3</td>
+      <td>
+        <a href="https://github.com/RooVetGit/Roo-Cline">Roo Code / Roomote</a>
+        <span>AI coding agent</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>17.79B</td>
+      <td>87,057</td>
+      <td>31%</td>
+      <td>Matt Rubens and Danny Leffel, public co-founder signals</td>
+      <td>Audit per-mode context and keep long-horizon task memory out of premium calls unless it changes the next action.</td>
+    </tr>
+  
+    <tr>
+      <td>4</td>
+      <td>
+        <a href="https://descript.com/">Descript</a>
+        <span>Creative productivity</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>60.73B</td>
+      <td>60,679</td>
+      <td>83%</td>
+      <td>Andrew Mason, CEO and founder</td>
+      <td>Cache transcript structure, route drafts and cleanup separately, and reserve premium models for review-sensitive edits.</td>
+    </tr>
+  
+    <tr>
+      <td>5</td>
+      <td>
+        <a href="https://zed.dev/">Zed Editor</a>
+        <span>AI coding editor</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>5.24B</td>
+      <td>89,998</td>
+      <td>16%</td>
+      <td>Nathan Sobo and Max Brunsfeld, founders</td>
+      <td>Measure the delta between active editing context and full project context, then tune model tier by action type.</td>
+    </tr>
+  
+    <tr>
+      <td>6</td>
+      <td>
+        <a href="https://postqode.ai/">PostQode</a>
+        <span>AI testing / developer tools</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>743.8M</td>
+      <td>110,452</td>
+      <td>78%</td>
+      <td>Manoj M.V. and Gopinathan A., co-founders</td>
+      <td>Compress failure evidence and separate test discovery from test-writing model calls.</td>
+    </tr>
+  
+    <tr>
+      <td>7</td>
+      <td>
+        <a href="https://team9.ai/">Team9</a>
+        <span>AI workforce / agent team</span>
+      </td>
+      <td>100</td>
+      <td>Very High</td>
+      <td>105.0M</td>
+      <td>108,634</td>
+      <td>98%</td>
+      <td>Founder not public in quick-pass</td>
+      <td>Add per-agent cost attribution and cross-agent context deduplication to protect execution margins.</td>
+    </tr>
+  
+    <tr>
+      <td>8</td>
+      <td>
+        <a href="https://openclaw.ai/">OpenClaw</a>
+        <span>Personal / autonomous agent</span>
+      </td>
+      <td>99</td>
+      <td>Very High</td>
+      <td>148.22B</td>
+      <td>46,477</td>
+      <td>26%</td>
+      <td>Peter Steinberger, creator</td>
+      <td>Map the highest-token agent loops and split reasoning, action, and verification into model-aware tiers.</td>
+    </tr>
+  
+    <tr>
+      <td>9</td>
+      <td>
+        <a href="https://docs.all-hands.dev/">OpenHands / All Hands AI</a>
+        <span>AI coding agent</span>
+      </td>
+      <td>99</td>
+      <td>High</td>
+      <td>2.29B</td>
+      <td>57,475</td>
+      <td>38%</td>
+      <td>Robert Brennan, Xingyao Wang, Graham Neubig</td>
+      <td>Compress terminal logs and route failure classification before invoking expensive repair reasoning.</td>
+    </tr>
+  
+    <tr>
+      <td>10</td>
+      <td>
+        <a href="https://openwebui.com/">Open WebUI</a>
+        <span>Self-hosted AI workspace</span>
+      </td>
+      <td>98</td>
+      <td>Very High</td>
+      <td>4.83B</td>
+      <td>23,142</td>
+      <td>75%</td>
+      <td>Tim J. Baek, creator and founder</td>
+      <td>Add admin-visible context budgets, RAG chunk discipline, and per-provider routing defaults.</td>
+    </tr>
+  </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <section class="grid-2">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Token-Bloat Signals</h2>
+          <p>Volume and average-context intensity for the highest-priority targets.</p>
+        </div>
+        <div class="bars">
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Kilo Code</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:34%"></i></div>
+          <b>142.93B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:50%"></i></div>
+          <b>66,978</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Cline</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:6%"></i></div>
+          <b>24.76B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:66%"></i></div>
+          <b>87,335</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Roo Code / Roomote</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:4%"></i></div>
+          <b>17.79B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:65%"></i></div>
+          <b>87,057</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Descript</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:14%"></i></div>
+          <b>60.73B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:46%"></i></div>
+          <b>60,679</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Zed Editor</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>5.24B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:68%"></i></div>
+          <b>89,998</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>PostQode</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>743.8M</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:83%"></i></div>
+          <b>110,452</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Team9</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>105.0M</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:82%"></i></div>
+          <b>108,634</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>OpenClaw</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:35%"></i></div>
+          <b>148.22B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:35%"></i></div>
+          <b>46,477</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>OpenHands / All Hands AI</strong>
+          <span class="risk high">High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>2.29B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:43%"></i></div>
+          <b>57,475</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Open WebUI</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>4.83B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:17%"></i></div>
+          <b>23,142</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>GPT Workspace</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>1.03B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:13%"></i></div>
+          <b>17,063</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Hermes Agent</strong>
+          <span class="risk very-high">Very High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:100%"></i></div>
+          <b>419.13B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:44%"></i></div>
+          <b>57,959</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Agent Zero</strong>
+          <span class="risk high">High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>3.04B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:15%"></i></div>
+          <b>19,439</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Portkey AI</strong>
+          <span class="risk high">High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>5.81B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:11%"></i></div>
+          <b>14,930</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>Ito</strong>
+          <span class="risk high">High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>4.17B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:37%"></i></div>
+          <b>49,325</b>
+        </div>
+      </article>
+    
+      <article class="bloat-row">
+        <div class="bloat-title">
+          <strong>LibreChat</strong>
+          <span class="risk high">High</span>
+        </div>
+        <div class="barline">
+          <span>Daily tokens</span>
+          <div><i style="width:2%"></i></div>
+          <b>1.12B</b>
+        </div>
+        <div class="barline alt">
+          <span>Tokens/request</span>
+          <div><i style="width:14%"></i></div>
+          <b>18,412</b>
+        </div>
+      </article>
+    </div>
+      </div>
+      <div class="panel">
+        <div class="section-head">
+          <h2>Segment Weight</h2>
+          <p>Selected daily OpenRouter tokens by outbound segment.</p>
+        </div>
+        <div class="bars">
+    <article class="segment">
+      <div>
+        <strong>Personal / autonomous agent</strong>
+        <span>2 targets · avg priority 94</span>
+      </div>
+      <div class="segment-bar"><i style="width:100%"></i></div>
+      <b>567.35B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI coding agent</strong>
+        <span>6 targets · avg priority 92</span>
+      </div>
+      <div class="segment-bar"><i style="width:34%"></i></div>
+      <b>190.69B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Creative productivity</strong>
+        <span>1 targets · avg priority 100</span>
+      </div>
+      <div class="segment-bar"><i style="width:11%"></i></div>
+      <b>60.73B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Self-hosted AI workspace</strong>
+        <span>2 targets · avg priority 92</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>5.95B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI gateway / infrastructure</strong>
+        <span>1 targets · avg priority 88</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>5.81B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI coding editor</strong>
+        <span>1 targets · avg priority 100</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>5.24B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Agentic QA</strong>
+        <span>1 targets · avg priority 87</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>4.17B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Autonomous agent framework</strong>
+        <span>1 targets · avg priority 89</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>3.04B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI email productivity</strong>
+        <span>1 targets · avg priority 75</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>2.81B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI digital twin platform</strong>
+        <span>1 targets · avg priority 86</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>2.79B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Agent workflow platform</strong>
+        <span>1 targets · avg priority 79</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>1.75B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Token-efficient autonomous agent</strong>
+        <span>1 targets · avg priority 75</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>1.25B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Google Workspace AI</strong>
+        <span>1 targets · avg priority 96</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>1.03B</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI testing / developer tools</strong>
+        <span>1 targets · avg priority 100</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>743.8M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Browser agents / AI workforce</strong>
+        <span>1 targets · avg priority 83</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>598.2M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Personal AI assistant</strong>
+        <span>1 targets · avg priority 86</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>356.0M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI marketing operations</strong>
+        <span>1 targets · avg priority 71</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>286.0M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Browser / computer-use agent</strong>
+        <span>1 targets · avg priority 67</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>152.1M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Writing assistant / browser agent</strong>
+        <span>1 targets · avg priority 61</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>135.4M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI customer support / business ops</strong>
+        <span>1 targets · avg priority 64</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>127.5M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Productivity workspace / agent</strong>
+        <span>1 targets · avg priority 77</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>113.8M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>AI workforce / agent team</strong>
+        <span>1 targets · avg priority 100</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>105.0M</b>
+    </article>
+  
+    <article class="segment">
+      <div>
+        <strong>Workforce productivity</strong>
+        <span>1 targets · avg priority 85</span>
+      </div>
+      <div class="segment-bar"><i style="width:3%"></i></div>
+      <b>72.1M</b>
+    </article>
+  </div>
+        <p class="note">The daily token values are from the scraped OpenRouter app listing snapshot. They are public usage signals for prioritization, not claims about each company's internal margins.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Full Pipeline</h2>
+        <p>The complete 30-account model-eval table behind the workbook.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Score</th>
+              <th>Target</th>
+              <th>Segment</th>
+              <th>Daily Tokens</th>
+              <th>Tokens / Request</th>
+              <th>Premium Mix</th>
+              <th>Risk</th>
+              <th>Contact Confidence</th>
+              <th>CTA</th>
+            </tr>
+          </thead>
+          <tbody>
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps/kilo-code">Kilo Code</a></td>
+      <td>AI coding agent</td>
+      <td>142.93B</td>
+      <td>66,978</td>
+      <td>8%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>benchmark one common coding workflow</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps/cline">Cline</a></td>
+      <td>AI coding agent</td>
+      <td>24.76B</td>
+      <td>87,335</td>
+      <td>42%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>agent loop margin teardown</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps/roo-code">Roo Code / Roomote</a></td>
+      <td>AI coding agent</td>
+      <td>17.79B</td>
+      <td>87,057</td>
+      <td>31%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Medium</td>
+      <td>mode-level token budget sketch</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps/descript">Descript</a></td>
+      <td>Creative productivity</td>
+      <td>60.73B</td>
+      <td>60,679</td>
+      <td>83%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>transcript workflow token map</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps/zed-editor">Zed Editor</a></td>
+      <td>AI coding editor</td>
+      <td>5.24B</td>
+      <td>89,998</td>
+      <td>16%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>editor-context audit</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fpostqode.ai%2F">PostQode</a></td>
+      <td>AI testing / developer tools</td>
+      <td>743.8M</td>
+      <td>110,452</td>
+      <td>78%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>continuous testing token review</td>
+    </tr>
+  
+    <tr>
+      <td>100</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fteam9.ai%2F">Team9</a></td>
+      <td>AI workforce / agent team</td>
+      <td>105.0M</td>
+      <td>108,634</td>
+      <td>98%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Medium</td>
+      <td>multi-agent cost attribution review</td>
+    </tr>
+  
+    <tr>
+      <td>99</td>
+      <td><a href="https://openrouter.ai/apps/openclaw">OpenClaw</a></td>
+      <td>Personal / autonomous agent</td>
+      <td>148.22B</td>
+      <td>46,477</td>
+      <td>26%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>one workflow token trace review</td>
+    </tr>
+  
+    <tr>
+      <td>99</td>
+      <td><a href="https://openrouter.ai/apps/openhands">OpenHands / All Hands AI</a></td>
+      <td>AI coding agent</td>
+      <td>2.29B</td>
+      <td>57,475</td>
+      <td>38%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>failed-test retry loop teardown</td>
+    </tr>
+  
+    <tr>
+      <td>98</td>
+      <td><a href="https://openrouter.ai/apps/open-webui">Open WebUI</a></td>
+      <td>Self-hosted AI workspace</td>
+      <td>4.83B</td>
+      <td>23,142</td>
+      <td>75%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>High</td>
+      <td>RAG/chat context audit</td>
+    </tr>
+  
+    <tr>
+      <td>96</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fgpt.space%2F">GPT Workspace</a></td>
+      <td>Google Workspace AI</td>
+      <td>1.03B</td>
+      <td>17,063</td>
+      <td>76%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Medium</td>
+      <td>Google Workspace task cost map</td>
+    </tr>
+  
+    <tr>
+      <td>89</td>
+      <td><a href="https://openrouter.ai/apps/hermes-agent">Hermes Agent</a></td>
+      <td>Personal / autonomous agent</td>
+      <td>419.13B</td>
+      <td>57,959</td>
+      <td>12%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Low</td>
+      <td>20-minute public-signal bloat teardown</td>
+    </tr>
+  
+    <tr>
+      <td>89</td>
+      <td><a href="https://openrouter.ai/apps/agent-zero">Agent Zero</a></td>
+      <td>Autonomous agent framework</td>
+      <td>3.04B</td>
+      <td>19,439</td>
+      <td>56%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>plugin/tool-loop bloat scan</td>
+    </tr>
+  
+    <tr>
+      <td>88</td>
+      <td><a href="https://openrouter.ai/apps/portkey-ai">Portkey AI</a></td>
+      <td>AI gateway / infrastructure</td>
+      <td>5.81B</td>
+      <td>14,930</td>
+      <td>35%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>compare notes on token waste taxonomy</td>
+    </tr>
+  
+    <tr>
+      <td>87</td>
+      <td><a href="https://openrouter.ai/apps/ito">Ito</a></td>
+      <td>Agentic QA</td>
+      <td>4.17B</td>
+      <td>49,325</td>
+      <td>2%</td>
+      <td><span class="risk high">High</span></td>
+      <td>Medium</td>
+      <td>sample PR test cost breakdown</td>
+    </tr>
+  
+    <tr>
+      <td>86</td>
+      <td><a href="https://openrouter.ai/apps/librechat">LibreChat</a></td>
+      <td>Self-hosted AI workspace</td>
+      <td>1.12B</td>
+      <td>18,412</td>
+      <td>63%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>multi-provider context review</td>
+    </tr>
+  
+    <tr>
+      <td>86</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fbuddypro.ai%2F">BuddyPro AI</a></td>
+      <td>AI digital twin platform</td>
+      <td>2.79B</td>
+      <td>12,920</td>
+      <td>62%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>AI twin margin review</td>
+    </tr>
+  
+    <tr>
+      <td>86</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fwww.vellum.ai%2F">Vellum Assistant</a></td>
+      <td>Personal AI assistant</td>
+      <td>356.0M</td>
+      <td>44,899</td>
+      <td>54%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>assistant memory bloat review</td>
+    </tr>
+  
+    <tr>
+      <td>85</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fwww.timecamp.com%2F">TimeCamp Time Tracker</a></td>
+      <td>Workforce productivity</td>
+      <td>72.1M</td>
+      <td>15,848</td>
+      <td>94%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Medium</td>
+      <td>time-entry AI cost review</td>
+    </tr>
+  
+    <tr>
+      <td>83</td>
+      <td><a href="https://openrouter.ai/apps/gobii">Gobii</a></td>
+      <td>Browser agents / AI workforce</td>
+      <td>598.2M</td>
+      <td>36,630</td>
+      <td>2%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>browser-run token yield teardown</td>
+    </tr>
+  
+    <tr>
+      <td>79</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fdify.ai%2F">Dify.AI</a></td>
+      <td>Agent workflow platform</td>
+      <td>1.75B</td>
+      <td>2,529</td>
+      <td>7%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>workflow-node bloat review</td>
+    </tr>
+  
+    <tr>
+      <td>78</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fcodebuff.com%2F">Codebuff</a></td>
+      <td>AI coding agent</td>
+      <td>2.64B</td>
+      <td>9,858</td>
+      <td>40%</td>
+      <td><span class="risk high">High</span></td>
+      <td>Medium</td>
+      <td>repo-context efficiency review</td>
+    </tr>
+  
+    <tr>
+      <td>77</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fgetflo.com%2F">Flo Agent</a></td>
+      <td>Productivity workspace / agent</td>
+      <td>113.8M</td>
+      <td>133,054</td>
+      <td>0%</td>
+      <td><span class="risk very-high">Very High</span></td>
+      <td>Medium</td>
+      <td>productivity-agent token audit</td>
+    </tr>
+  
+    <tr>
+      <td>75</td>
+      <td><a href="https://openrouter.ai/apps/extra-email">extra.email / BuildForever</a></td>
+      <td>AI email productivity</td>
+      <td>2.81B</td>
+      <td>3,735</td>
+      <td>0%</td>
+      <td><span class="risk high">High</span></td>
+      <td>High</td>
+      <td>email-thread token audit</td>
+    </tr>
+  
+    <tr>
+      <td>75</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fopensquilla.ai%2F">OpenSquilla</a></td>
+      <td>Token-efficient autonomous agent</td>
+      <td>1.25B</td>
+      <td>19,339</td>
+      <td>9%</td>
+      <td><span class="risk high">High</span></td>
+      <td>Medium</td>
+      <td>router benchmark exchange</td>
+    </tr>
+  
+    <tr>
+      <td>73</td>
+      <td><a href="https://openrouter.ai/apps/aider">Aider</a></td>
+      <td>AI coding agent</td>
+      <td>274.4M</td>
+      <td>22,715</td>
+      <td>40%</td>
+      <td><span class="risk medium">Medium</span></td>
+      <td>High</td>
+      <td>repo-map efficiency teardown</td>
+    </tr>
+  
+    <tr>
+      <td>71</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fvectoron.ai%2F">Vectoron</a></td>
+      <td>AI marketing operations</td>
+      <td>286.0M</td>
+      <td>8,653</td>
+      <td>21%</td>
+      <td><span class="risk medium">Medium</span></td>
+      <td>High</td>
+      <td>content pipeline cost teardown</td>
+    </tr>
+  
+    <tr>
+      <td>67</td>
+      <td><a href="https://openrouter.ai/apps/clark">Clark - Personal Agent</a></td>
+      <td>Browser / computer-use agent</td>
+      <td>152.1M</td>
+      <td>47,881</td>
+      <td>1%</td>
+      <td><span class="risk high">High</span></td>
+      <td>Low</td>
+      <td>computer-use loop cost review</td>
+    </tr>
+  
+    <tr>
+      <td>64</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fsupsis.com%2F">Supsis AI</a></td>
+      <td>AI customer support / business ops</td>
+      <td>127.5M</td>
+      <td>10,887</td>
+      <td>14%</td>
+      <td><span class="risk medium">Medium</span></td>
+      <td>Medium</td>
+      <td>support-flow inference audit</td>
+    </tr>
+  
+    <tr>
+      <td>61</td>
+      <td><a href="https://openrouter.ai/apps?url=https%3A%2F%2Fwww.hyperwriteai.com%2F">HyperWrite AI</a></td>
+      <td>Writing assistant / browser agent</td>
+      <td>135.4M</td>
+      <td>7,933</td>
+      <td>9%</td>
+      <td><span class="risk medium">Medium</span></td>
+      <td>High</td>
+      <td>writing-agent bloat review</td>
+    </tr>
+  </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
